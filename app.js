@@ -4,6 +4,11 @@ const app = express()
 const port = 3000
 const Book = require('./books')
 
+
+app.use(express.json())
+
+
+
 app.get('/',(req, res)=>{
     res.send('Hello Ritesh')
 })
@@ -18,24 +23,36 @@ mongoose.connect(dbURL,{useNewUrlParser:true, useUnifiedTopology: true})
         console.log(err)
     })
 
-app.get('/add-book',(req,res)=>{
-    // res.send("add books")
-    const book = new Book({
-        name : "React Js",
-        author : "Ritesh",
-        description : "This is web development books",
-        price : 101,
-    })
-    book.save()
-        .then((result)=>{
-            res.send(result)
+//create book
+app.post('/add-book',(req,res)=>{
+    console.log(req.body)
+    const book = new Book(req.body)
+     book.save()
+        .then((book)=>{
+            res.send(book)
         })
         .catch((err)=>{
+            succes:false,
             console.log(err)
         })
+        
 })
 
-app.get('/all-book',(req,res)=>{
+//fetch by id
+app.get('/all-book/:id',(req,res)=>{
+    const id = req.params.id
+    Book.findById({_id:id})
+    .then((result)=>{
+        res.send(result)
+    })
+    .catch((err)=>{
+        console.log(err)
+    })
+})
+
+//fetch all book
+app.get('/all-book',(req,res)=>{    
+    const book = new Book(req.body);
     Book.find()
         .then((result)=>{
             res.send(result)
@@ -45,27 +62,38 @@ app.get('/all-book',(req,res)=>{
         })
 })
 
-app.get('/update-book',(req,res)=>{
-    Book.findByIdAndUpdate('617a4fae3ea0f9b9bce55326',{
-        name : "python",
-        author : "amit",
-        description : "This book is used for backend and front end",
-        price:301
-    })
-        .then((result)=>{
-            res.redirect('/all-book')
+  
+//update
+app.put('/update-book/:id',(req,res)=>{
+    const id = req.params.id
+    Book.updateOne({_id:id},req.body)
+        .then((book)=>{
+            res.send(book)
         })
         .catch((err)=>{
             console.log(err)
         })
 })
 
-app.get('/delete-book',(req,res)=>{
-    Book.findByIdAndDelete('617a50354b52322f930c5493')
+//delete
+app.delete('/delete-book/:id',(req,res)=>{
+    const id = req.params.id
+     Book.deleteOne({_id:id})
         .then((result)=>{
             res.send(result)
         })
         .catch((err)=>{
             console.log(err)
+        })
+})
+
+//delete all records
+app.delete('/delete-book',(req,res)=>{
+    Book.deleteMany()
+        .then((result)=>{
+            res.send(result)
+        })
+        .catch((err)=>{
+            res.send(err)
         })
 })

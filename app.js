@@ -7,7 +7,24 @@ const Book = require('./books')
 
 app.use(express.json())
 
+const validations1= ()=>{
+    return (req, res, next)=>{
+        if(Object.entries(req.body).length<1 || typeof req.body == undefined){
+           return res.status(404).send("please enter required element")        
+        }else{
+           next()
+        }
+    }
+}
+ 
 
+const validations=(req, res, next)=>{
+    if(req.query.admin === "true"){
+        next()
+    }else{
+        res.status(404).send("No such")
+    }
+}
 
 app.get('/',(req, res)=>{
     res.send('Hello Ritesh')
@@ -24,7 +41,7 @@ mongoose.connect(dbURL,{useNewUrlParser:true, useUnifiedTopology: true})
     })
 
 //create book
-app.post('/add-book',(req,res)=>{
+app.post('/add-book',validations1(),(req,res, next)=>{
     console.log(req.body)
     const book = new Book(req.body)
      book.save()
@@ -39,7 +56,7 @@ app.post('/add-book',(req,res)=>{
 })
 
 //fetch by id
-app.get('/all-book/:id',(req,res)=>{
+app.get('/all-book/:id',validations,(req,res)=>{
     const id = req.params.id
     Book.findById({_id:id})
     .then((result)=>{
@@ -51,7 +68,7 @@ app.get('/all-book/:id',(req,res)=>{
 })
 
 //fetch all book
-app.get('/all-book',(req,res)=>{    
+app.get('/all-book',validations,(req,res)=>{    
     const book = new Book(req.body);
     Book.find()
         .then((result)=>{
@@ -64,7 +81,7 @@ app.get('/all-book',(req,res)=>{
 
   
 //update
-app.put('/update-book/:id',(req,res)=>{
+app.put('/update-book/:id',validations1(),(req,res)=>{
     const id = req.params.id
     Book.updateOne({_id:id},req.body)
         .then((book)=>{
@@ -76,7 +93,7 @@ app.put('/update-book/:id',(req,res)=>{
 })
 
 //delete
-app.delete('/delete-book/:id',(req,res)=>{
+app.delete('/delete-book/:id',validations,(req,res)=>{
     const id = req.params.id
      Book.deleteOne({_id:id})
         .then((result)=>{

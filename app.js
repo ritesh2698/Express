@@ -15,8 +15,7 @@ const validations1= ()=>{
            next()
         }
     }
-}
- 
+} 
 
 const validations=(req, res, next)=>{
     if(req.query.admin === "true"){

@@ -47,32 +47,27 @@ app.get('/',(req, res)=>{
 
 app.post("/register", async (req, res) => {
 
-    // Our register logic starts here
     try {
-      // Get user input
       const { fname, lname, email, password } = req.body;
   
-      // Validate user input
       if (!(email && password && fname && lname)) {
         res.status(400).send("All input is required");
       }
   
-      // check if user already exist
-      // Validate if user exist in our database
+      
       const oldUser = await User.findOne({ email });
   
       if (oldUser) {
         return res.status(409).send("User Already Exist. Please Login");
       }
   
-      //Encrypt user password
+      
       encryptedPassword = await bcrypt.hash(password, 10);
   
-      // Create user in our database
       const user = await User.create({
         fname,
         lname,
-        email: email.toLowerCase(), // sanitize: convert email to lowercase
+        email: email.toLowerCase(), 
         password: encryptedPassword,
       });
   
@@ -92,21 +87,16 @@ app.post("/register", async (req, res) => {
     } catch (err) {
       console.log(err);
     }
-    // Our register logic ends here
   });
 
   app.post('/login', async (req, res) => {
 
-    // Our login logic starts here
     try {
-      // Get user input
       const { email, password } = req.body;
   
-      // Validate user input
       if (!(email && password)) {
         res.status(400).send("All input is required");
       }
-      // Validate if user exist in our database
       const user = await User.findOne({ email });
       console.log(user)    
 

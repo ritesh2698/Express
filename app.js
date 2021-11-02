@@ -3,6 +3,12 @@ const mongoose = require('mongoose')
 const app = express()
 const port = 3000
 const Book = require('./books')
+const User = require('./user')
+require('./database')
+const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
+const auth = require("./middleware/auth");
+
 
 
 app.use(express.json())
@@ -30,17 +36,107 @@ app.get('/',(req, res)=>{
 })
 
 //Connect to database
-const dbURL = 'mongodb+srv://ritesh:root@nodejs.w4kgb.mongodb.net/NodeJs?retryWrites=true&w=majority'
-mongoose.connect(dbURL,{useNewUrlParser:true, useUnifiedTopology: true})
-    .then((result)=>{
-        app.listen(port)
-    })
-    .catch((err)=>{
-        console.log(err)
-    })
+// const dbURL = 'mongodb+srv://ritesh:root@nodejs.w4kgb.mongodb.net/NodeJs?retryWrites=true&w=majority'
+// mongoose.connect(dbURL,{useNewUrlParser:true, useUnifiedTopology: true})
+//     .then((result)=>{
+//         app.listen(port)
+//     })
+//     .catch((err)=>{
+//         console.log(err)
+//     })
+
+app.post("/register", async (req, res) => {
+
+    // Our register logic starts here
+    try {
+      // Get user input
+      const { fname, lname, email, password } = req.body;
+  
+      // Validate user input
+      if (!(email && password && fname && lname)) {
+        res.status(400).send("All input is required");
+      }
+  
+      // check if user already exist
+      // Validate if user exist in our database
+      const oldUser = await User.findOne({ email });
+  
+      if (oldUser) {
+        return res.status(409).send("User Already Exist. Please Login");
+      }
+  
+      //Encrypt user password
+      encryptedPassword = await bcrypt.hash(password, 10);
+  
+      // Create user in our database
+      const user = await User.create({
+        fname,
+        lname,
+        email: email.toLowerCase(), // sanitize: convert email to lowercase
+        password: encryptedPassword,
+      });
+  
+      // Create token
+      const token = jwt.sign(
+        { user_id: user._id, email },
+        "my_secret_key",
+        {
+          expiresIn: "2h",
+        }
+      );
+      // save user token
+      user.token = token;
+  
+      // return new user
+      res.status(201).json(user);
+    } catch (err) {
+      console.log(err);
+    }
+    // Our register logic ends here
+  });
+
+  app.post('/login', async (req, res) => {
+
+    // Our login logic starts here
+    try {
+      // Get user input
+      const { email, password } = req.body;
+  
+      // Validate user input
+      if (!(email && password)) {
+        res.status(400).send("All input is required");
+      }
+      // Validate if user exist in our database
+      const user = await User.findOne({ email });
+      console.log(user)    
+
+    if(user && (password == user.password)){
+      // Create token
+      const token = jwt.sign(
+        { user_id: user._id, email },
+        "my_secret_key",
+        {
+          expiresIn: "2h",
+        }
+      );
+
+      // save user token
+      user.token = token;
+      res.status(200).json(user);
+
+    }
+    res.status(400).send("Invalid Credentials");
+   
+
+  } catch (err) {
+      console.log(err);
+    }
+
+  });
+
 
 //create book
-app.post('/add-book',validations1(),(req,res, next)=>{
+app.post('/add-book',auth,(req,res, next)=>{
     console.log(req.body)
     const book = new Book(req.body)
      book.save()
@@ -55,7 +151,7 @@ app.post('/add-book',validations1(),(req,res, next)=>{
 })
 
 //fetch by id
-app.get('/all-book/:id',validations,(req,res)=>{
+app.get('/all-book/:id',auth,(req,res)=>{
     const id = req.params.id
     Book.findById({_id:id})
     .then((result)=>{
@@ -67,7 +163,7 @@ app.get('/all-book/:id',validations,(req,res)=>{
 })
 
 //fetch all book
-app.get('/all-book',validations,(req,res)=>{    
+app.get('/all-book',auth,(req,res)=>{    
     const book = new Book(req.body);
     Book.find()
         .then((result)=>{
@@ -80,7 +176,7 @@ app.get('/all-book',validations,(req,res)=>{
 
   
 //update
-app.put('/update-book/:id',validations1(),(req,res)=>{
+app.put('/update-book/:id',auth,(req,res)=>{
     const id = req.params.id
     Book.updateOne({_id:id},req.body)
         .then((book)=>{
@@ -92,7 +188,7 @@ app.put('/update-book/:id',validations1(),(req,res)=>{
 })
 
 //delete
-app.delete('/delete-book/:id',validations,(req,res)=>{
+app.delete('/delete-book/:id',auth,(req,res)=>{
     const id = req.params.id
      Book.deleteOne({_id:id})
         .then((result)=>{
@@ -104,7 +200,7 @@ app.delete('/delete-book/:id',validations,(req,res)=>{
 })
 
 //delete all records
-app.delete('/delete-book',(req,res)=>{
+app.delete('/delete-book',auth,(req,res)=>{
     Book.deleteMany()
         .then((result)=>{
             res.send(result)
@@ -112,4 +208,8 @@ app.delete('/delete-book',(req,res)=>{
         .catch((err)=>{
             res.send(err)
         })
+})
+
+app.listen(port, () => {
+  console.log(`app listening at http://localhost:${port}`)
 })
